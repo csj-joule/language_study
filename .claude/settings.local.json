@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --app --eslint --import-alias \"@/*\" --use-npm --no-src-dir)",
+      "Bash(command -v nvm)",
+      "Read(//Users/seungjinchoi/.nvm/**)",
+      "Bash(command -v fnm)",
+      "Bash(command -v n)",
+      "Bash(mkdir -p /tmp/study_japan_backup)",
+      "Bash(mv /Users/seungjinchoi/project/study_japan/DESIGN.md /Users/seungjinchoi/project/study_japan/.nvmrc /tmp/study_japan_backup/)"
+    ]
+  }
+}

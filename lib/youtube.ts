@@ -56,7 +56,9 @@ export type RawSegment = {
   endSec: number
 }
 
-const SENTENCE_END = /[。！？…]/
+// 자동 생성 자막은 물음표/느낌표를 전각(！？) 대신 반각(!?)으로 쓰는 경우가 많아
+// 둘 다 문장 끝으로 인식한다. 마침표(.)는 소수점/약어 등과 겹칠 위험이 있어 제외한다.
+const SENTENCE_END = /[。！？…!?]/
 const SECONDARY_SPLIT = /[、,]/g
 
 // 문장부호가 드물어 한 문장이 지나치게 길어질 때 적용할 기준
@@ -148,6 +150,13 @@ export function buildSegments(cues: TranscriptCue[]): RawSegment[] {
     if (bufferStart === null) bufferStart = cue.offsetSec
     bufferEnd = cue.offsetSec + cue.durationSec
 
+    // 큐 하나 안에 문장이 여러 개 들어있는 경우(자동 자막에서 흔함), 문장마다
+    // 큐 전체 시간을 그대로 부여하면 여러 문장이 완전히 같은 타임스탬프를
+    // 갖게 되어 재생 동기화가 깨진다. 큐 안에서 소비한 글자 수 비율로 시간을
+    // 보간해서, 문장별로 서로 다른 시점을 갖도록 한다.
+    const cueTextLen = cue.text.length
+    let cueConsumed = 0
+
     let rest = cue.text
     while (true) {
       const match = rest.match(SENTENCE_END)
@@ -157,13 +166,16 @@ export function buildSegments(cues: TranscriptCue[]): RawSegment[] {
       }
       const cutIndex = match.index + 1
       buffer += rest.slice(0, cutIndex)
+      cueConsumed += cutIndex
       const text = buffer.trim()
+      const ratio = cueTextLen > 0 ? Math.min(cueConsumed / cueTextLen, 1) : 1
+      const splitEnd = cue.offsetSec + cue.durationSec * ratio
       if (text.length > 0 && bufferStart !== null) {
-        segments.push({ textJa: text, startSec: bufferStart, endSec: bufferEnd })
+        segments.push({ textJa: text, startSec: bufferStart, endSec: splitEnd })
       }
       buffer = ''
       rest = rest.slice(cutIndex)
-      bufferStart = rest.length > 0 ? cue.offsetSec : null
+      bufferStart = rest.length > 0 ? splitEnd : null
     }
   }
 

@@ -2,74 +2,51 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from './db'
 import type { FuriganaToken, Segment, Video } from './types'
 
-export type PipelineStage = 'transcript' | 'furigana' | 'translate' | 'saving' | 'done'
+export type PipelineStage = 'transcript' | 'saving' | 'done'
 
 export type PipelineProgress = {
   stage: PipelineStage
-  current?: number
-  total?: number
 }
 
-type RawSegment = { textJa: string; startSec: number; endSec: number }
-type TranscriptResponse = {
+type CachedSegmentResponse = {
+  order: number
+  startSec: number
+  endSec: number
+  textJa: string
+  textKo: string
+  furigana: FuriganaToken[]
+}
+
+type VideoCacheResponse = {
   videoId: string
   meta: { title: string; channelTitle: string; thumbnailUrl: string }
-  segments: RawSegment[]
+  segments: CachedSegmentResponse[]
+  cached: boolean
 }
 
-const CHUNK_SIZE = 40
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
-}
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+async function fetchVideoCache(video: string, force: boolean): Promise<VideoCacheResponse> {
+  const params = new URLSearchParams({ video })
+  if (force) params.set('force', '1')
+  const res = await fetch(`/api/video-cache?${params.toString()}`)
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? `요청 실패: ${url}`)
-  return data as T
+  if (!res.ok) {
+    throw new Error(data.error ?? '자막을 가져오지 못했습니다')
+  }
+  return data as VideoCacheResponse
 }
 
+/**
+ * 유튜브 영상을 등록한다. 서버(Neon Postgres)에 이미 캐시된 영상이면 자막/후리가나/
+ * 번역을 다시 가져오지 않고 캐시에서 바로 받아오고, 처음 등록하는 영상이면 새로
+ * 가져와 서버 캐시에도 저장해서 다음에는(다른 기기에서도) 즉시 재사용할 수 있게 한다.
+ */
 export async function registerVideoFromUrl(
   url: string,
   onProgress?: (p: PipelineProgress) => void
 ): Promise<string> {
   onProgress?.({ stage: 'transcript' })
 
-  const transcriptRes = await fetch(`/api/transcript?video=${encodeURIComponent(url)}`)
-  const transcriptData = await transcriptRes.json()
-  if (!transcriptRes.ok) {
-    throw new Error(transcriptData.error ?? '자막을 가져오지 못했습니다')
-  }
-  const { videoId, meta, segments: rawSegments } = transcriptData as TranscriptResponse
-
-  const texts = rawSegments.map((s) => s.textJa)
-
-  const furiganaChunks = chunk(texts, CHUNK_SIZE)
-  const furiganaResults: FuriganaToken[][] = []
-  for (let i = 0; i < furiganaChunks.length; i++) {
-    onProgress?.({ stage: 'furigana', current: i + 1, total: furiganaChunks.length })
-    const data = await postJson<{ results: FuriganaToken[][] }>('/api/furigana', {
-      texts: furiganaChunks[i],
-    })
-    furiganaResults.push(...data.results)
-  }
-
-  const translateChunks = chunk(texts, CHUNK_SIZE)
-  const translations: string[] = []
-  for (let i = 0; i < translateChunks.length; i++) {
-    onProgress?.({ stage: 'translate', current: i + 1, total: translateChunks.length })
-    const data = await postJson<{ translations: string[] }>('/api/translate', {
-      texts: translateChunks[i],
-    })
-    translations.push(...data.translations)
-  }
+  const { videoId, meta, segments: cachedSegments } = await fetchVideoCache(url, false)
 
   onProgress?.({ stage: 'saving' })
 
@@ -79,19 +56,20 @@ export async function registerVideoFromUrl(
     title: meta.title,
     channelTitle: meta.channelTitle,
     thumbnailUrl: meta.thumbnailUrl,
-    durationSec: rawSegments.length > 0 ? rawSegments[rawSegments.length - 1].endSec : 0,
+    durationSec:
+      cachedSegments.length > 0 ? cachedSegments[cachedSegments.length - 1].endSec : 0,
     createdAt: new Date().toISOString(),
   }
 
-  const segmentRecords: Segment[] = rawSegments.map((s, i) => ({
+  const segmentRecords: Segment[] = cachedSegments.map((s) => ({
     id: uuidv4(),
     videoId: videoRecord.id,
-    order: i,
+    order: s.order,
     startSec: s.startSec,
     endSec: s.endSec,
     textJa: s.textJa,
-    furigana: furiganaResults[i] ?? [{ surface: s.textJa }],
-    textKo: translations[i] ?? '',
+    furigana: s.furigana,
+    textKo: s.textKo,
   }))
 
   await db.transaction('rw', db.videos, db.segments, async () => {
@@ -104,10 +82,11 @@ export async function registerVideoFromUrl(
 }
 
 /**
- * 이미 등록된 영상의 자막을 다시 가져와 최신 구간 분리 로직(긴 문장 최대 2개 분할 등)으로
- * 구간을 재생성한다. 기존 구간을 전부 지우고 새로 만들기 때문에 구간 ID가 바뀌어,
- * 그 구간을 참조하던 북마크도 함께 삭제한다. 번역은 다시 비워두고 화면의 자동 번역
- * 채우기 기능이 새 구간에 대해 다시 채우도록 한다.
+ * 이미 등록된 영상의 자막을 다시 가져와 최신 구간 분리 로직으로 구간을 재생성한다.
+ * 서버 캐시가 오래된(수정 전 로직으로 만들어진) 상태일 수 있으므로 캐시를 무시하고
+ * 강제로 새로 가져오며, 새로 가져온 결과로 서버 캐시도 함께 갱신한다.
+ * 기존 구간을 전부 지우고 새로 만들기 때문에 구간 ID가 바뀌어, 그 구간을 참조하던
+ * 북마크도 함께 삭제한다.
  */
 export async function rebuildSegments(
   video: { id: string; youtubeId: string },
@@ -115,38 +94,19 @@ export async function rebuildSegments(
 ): Promise<void> {
   onProgress?.({ stage: 'transcript' })
 
-  const transcriptRes = await fetch(
-    `/api/transcript?video=${encodeURIComponent(video.youtubeId)}`
-  )
-  const transcriptData = await transcriptRes.json()
-  if (!transcriptRes.ok) {
-    throw new Error(transcriptData.error ?? '자막을 가져오지 못했습니다')
-  }
-  const { segments: rawSegments } = transcriptData as TranscriptResponse
-
-  const texts = rawSegments.map((s) => s.textJa)
-
-  const furiganaChunks = chunk(texts, CHUNK_SIZE)
-  const furiganaResults: FuriganaToken[][] = []
-  for (let i = 0; i < furiganaChunks.length; i++) {
-    onProgress?.({ stage: 'furigana', current: i + 1, total: furiganaChunks.length })
-    const data = await postJson<{ results: FuriganaToken[][] }>('/api/furigana', {
-      texts: furiganaChunks[i],
-    })
-    furiganaResults.push(...data.results)
-  }
+  const { segments: cachedSegments } = await fetchVideoCache(video.youtubeId, true)
 
   onProgress?.({ stage: 'saving' })
 
-  const segmentRecords: Segment[] = rawSegments.map((s, i) => ({
+  const segmentRecords: Segment[] = cachedSegments.map((s) => ({
     id: uuidv4(),
     videoId: video.id,
-    order: i,
+    order: s.order,
     startSec: s.startSec,
     endSec: s.endSec,
     textJa: s.textJa,
-    furigana: furiganaResults[i] ?? [{ surface: s.textJa }],
-    textKo: '',
+    furigana: s.furigana,
+    textKo: s.textKo,
   }))
 
   await db.transaction('rw', db.segments, db.bookmarks, async () => {

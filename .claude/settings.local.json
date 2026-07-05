@@ -76,7 +76,16 @@
       "WebFetch(domain:supadata.ai)",
       "WebFetch(domain:docs.supadata.ai)",
       "Bash(curl -s -c /tmp/lc3.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
-      "Bash(curl -s -b /tmp/lc3.txt \"http://localhost:3000/api/transcript?video=kLGY0_yK7N0\")"
+      "Bash(curl -s -b /tmp/lc3.txt \"http://localhost:3000/api/transcript?video=kLGY0_yK7N0\")",
+      "Bash(rm -f cookies3.txt)",
+      "Bash(curl -s -c cookies3.txt -X POST __TRACKED_VAR__/api/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b cookies3.txt __TRACKED_VAR__/api/transcript?video=kLGY0_yK7N0)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:neon.tech)",
+      "WebFetch(domain:neon.com)",
+      "Bash(curl -s -c /tmp/lc4.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(time curl -s -b /tmp/lc4.txt \"http://localhost:3000/api/video-cache?video=BA8UxrSco10\")",
+      "Bash(curl -s -b /tmp/lc4.txt \"http://localhost:3000/api/video-cache\")"
     ]
   }
 }

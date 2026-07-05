@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { registerVideoFromUrl, type PipelineProgress } from "@/lib/pipeline";
 
 const STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
-  transcript: "자막 가져오는 중...",
-  furigana: "후리가나 생성 중...",
-  translate: "한국어 번역 중...",
+  transcript: "자막/번역 가져오는 중... (이미 등록된 적 있는 영상이면 바로 완료됩니다)",
   saving: "저장 중...",
   done: "완료!",
 };
@@ -58,16 +56,6 @@ export default function AddVideoPage() {
       {progress && (
         <div className="rounded-md border bg-white p-4 text-sm">
           <p>{STAGE_LABEL[progress.stage]}</p>
-          {progress.total !== undefined && (
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
-              <div
-                className="h-full bg-neutral-900 transition-all"
-                style={{
-                  width: `${Math.round(((progress.current ?? 0) / progress.total) * 100)}%`,
-                }}
-              />
-            </div>
-          )}
         </div>
       )}
 

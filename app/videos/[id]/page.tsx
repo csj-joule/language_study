@@ -17,9 +17,7 @@ const RATES = [0.5, 0.75, 1, 1.25, 1.5];
 const btn =
   "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
 const REBUILD_STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
-  transcript: "자막 다시 가져오는 중...",
-  furigana: "후리가나 생성 중...",
-  translate: "번역 중...",
+  transcript: "자막/번역 다시 가져오는 중...",
   saving: "저장 중...",
   done: "완료!",
 };
@@ -114,7 +112,7 @@ export default function VideoPage() {
 
   // 번역이 비어있는 구간이 있으면 자동으로 번역을 채운다 (버튼 없이 백그라운드로 1회만 실행)
   useEffect(() => {
-    if (!segments || autoTranslateStartedRef.current) return;
+    if (!segments || !video?.youtubeId || autoTranslateStartedRef.current) return;
     const missing = segments.filter((s) => !s.textKo);
     if (missing.length === 0) return;
     autoTranslateStartedRef.current = true;
@@ -122,6 +120,7 @@ export default function VideoPage() {
     (async () => {
       setAutoTranslating(true);
       const CHUNK_SIZE = 40;
+      const cacheUpdates: { order: number; textKo: string }[] = [];
       try {
         for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
           const chunk = missing.slice(i, i + CHUNK_SIZE);
@@ -137,11 +136,20 @@ export default function VideoPage() {
           await Promise.all(
             chunk.map((seg, idx) => {
               const textKo = translations[idx];
-              return textKo
-                ? db.segments.update(seg.id, { textKo })
-                : Promise.resolve();
+              if (!textKo) return Promise.resolve();
+              cacheUpdates.push({ order: seg.order, textKo });
+              return db.segments.update(seg.id, { textKo });
             })
           );
+        }
+
+        // 서버 캐시에도 반영해서, 다른 기기에서 같은 영상을 열 때 이미 번역된 상태로 받도록 한다.
+        if (cacheUpdates.length > 0) {
+          fetch("/api/video-cache/translations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ youtubeId: video.youtubeId, updates: cacheUpdates }),
+          }).catch((err) => console.error("캐시 번역 동기화 실패:", err));
         }
       } catch (err) {
         console.error("자동 번역 실패:", err);
@@ -149,7 +157,7 @@ export default function VideoPage() {
         setAutoTranslating(false);
       }
     })();
-  }, [segments]);
+  }, [segments, video?.youtubeId]);
 
   if (!video || !segments) {
     return <p className="text-neutral-500">불러오는 중...</p>;

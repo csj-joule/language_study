@@ -9,6 +9,19 @@ export default function Home() {
     db.videos.orderBy("createdAt").reverse().toArray()
   );
 
+  async function handleDelete(e: React.MouseEvent, videoId: string, title: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`"${title}"을(를) 내 목록에서 삭제할까요?\n(자막/북마크가 함께 삭제됩니다. 서버에 캐시된 자막은 유지되어 다시 추가하면 즉시 불러올 수 있습니다.)`)) {
+      return;
+    }
+    await db.transaction("rw", db.videos, db.segments, db.bookmarks, async () => {
+      await db.bookmarks.where("videoId").equals(videoId).delete();
+      await db.segments.where("videoId").equals(videoId).delete();
+      await db.videos.delete(videoId);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -39,7 +52,7 @@ export default function Home() {
           <Link
             key={video.id}
             href={`/videos/${video.id}`}
-            className="flex gap-3 rounded-lg border bg-white p-3 hover:border-neutral-400"
+            className="group relative flex gap-3 rounded-lg border bg-white p-3 hover:border-neutral-400"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -47,12 +60,21 @@ export default function Home() {
               alt={video.title}
               className="h-16 w-28 flex-shrink-0 rounded object-cover"
             />
-            <div className="min-w-0">
-              <p className="truncate font-medium">{video.title}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate pr-6 font-medium">{video.title}</p>
               <p className="truncate text-sm text-neutral-500">
                 {video.channelTitle}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={(e) => handleDelete(e, video.id, video.title)}
+              aria-label="영상 삭제"
+              title="내 목록에서 삭제"
+              className="absolute right-2 top-2 rounded-full p-1 text-neutral-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+            >
+              ✕
+            </button>
           </Link>
         ))}
       </div>

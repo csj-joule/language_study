@@ -52,7 +52,13 @@
       "Bash(ipconfig getifaddr *)",
       "Bash(gh auth *)",
       "Bash(git check-ignore *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"http://localhost:3000/api/transcript?video=BA8UxrSco10\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"http://localhost:3000/videos/9b30f2e9-b0c9-4ee4-8962-b6a3717aae08\")"
     ]
   }
 }

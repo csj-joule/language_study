@@ -67,7 +67,16 @@
       "Bash(curl -s -i -b cookies.txt __TRACKED_VAR__/api/transcript?video=BA8UxrSco10)",
       "Bash(curl -s -b cookies.txt __TRACKED_VAR__/api/transcript?video=__TRACKED_VAR__)",
       "Bash(curl -s -c /tmp/local_cookies.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
-      "Bash(curl -s -b /tmp/local_cookies.txt \"http://localhost:3000/api/transcript?video=BA8UxrSco10\")"
+      "Bash(curl -s -b /tmp/local_cookies.txt \"http://localhost:3000/api/transcript?video=BA8UxrSco10\")",
+      "Bash(curl -s --proxy \"http://cnfptbdz:lg2p6d6z3eln@31.59.20.176:6754\" https://ifconfig.me --max-time 15)",
+      "Bash(curl -s https://ifconfig.me --max-time 15)",
+      "Bash(curl -s --proxy \"http://cnfptbdz:lg2p6d6z3eln@31.59.20.176:6754\" \"https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DBA8UxrSco10&format=json\" --max-time 20)",
+      "Bash(curl -s -c /tmp/local_cookies2.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(time curl -s -b /tmp/local_cookies2.txt \"http://localhost:3000/api/transcript?video=kLGY0_yK7N0\")",
+      "WebFetch(domain:supadata.ai)",
+      "WebFetch(domain:docs.supadata.ai)",
+      "Bash(curl -s -c /tmp/lc3.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b /tmp/lc3.txt \"http://localhost:3000/api/transcript?video=kLGY0_yK7N0\")"
     ]
   }
 }

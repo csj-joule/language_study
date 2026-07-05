@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { YoutubeTranscript } from 'youtube-transcript'
 import { buildSegments, extractYoutubeId, fetchVideoMeta } from '@/lib/youtube'
-import { youtubeFetch } from '@/lib/proxyFetch'
+import { fetchTranscriptViaSupadata } from '@/lib/supadata'
 
 export async function GET(req: NextRequest) {
   const videoParam = req.nextUrl.searchParams.get('video')
@@ -15,16 +14,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [meta, transcript] = await Promise.all([
+    const [meta, cues] = await Promise.all([
       fetchVideoMeta(videoId),
-      YoutubeTranscript.fetchTranscript(videoId, { lang: 'ja', fetch: youtubeFetch }),
+      fetchTranscriptViaSupadata(videoId, 'ja'),
     ])
-
-    const cues = transcript.map((t) => ({
-      text: t.text,
-      offsetSec: t.offset / 1000,
-      durationSec: t.duration / 1000,
-    }))
 
     const segments = buildSegments(cues)
 

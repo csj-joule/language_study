@@ -58,7 +58,16 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"http://localhost:3000/api/transcript?video=BA8UxrSco10\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"http://localhost:3000/videos/9b30f2e9-b0c9-4ee4-8962-b6a3717aae08\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"http://localhost:3000/videos/9b30f2e9-b0c9-4ee4-8962-b6a3717aae08\")",
+      "Bash(curl -s -i -c cookies.txt -X POST __TRACKED_VAR__/api/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"joule1709\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(rm -f cookies.txt)",
+      "Bash(curl -s -i -c cookies.txt -X POST __TRACKED_VAR__/api/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -i -b cookies.txt __TRACKED_VAR__/api/transcript?video=BA8UxrSco10)",
+      "Bash(curl -s -b cookies.txt __TRACKED_VAR__/api/transcript?video=__TRACKED_VAR__)",
+      "Bash(curl -s -c /tmp/local_cookies.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b /tmp/local_cookies.txt \"http://localhost:3000/api/transcript?video=BA8UxrSco10\")"
     ]
   }
 }

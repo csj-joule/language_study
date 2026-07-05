@@ -1,3 +1,5 @@
+import { youtubeFetch } from './proxyFetch'
+
 export function extractYoutubeId(input: string): string | null {
   const trimmed = input.trim()
   if (/^[\w-]{11}$/.test(trimmed)) return trimmed
@@ -32,7 +34,7 @@ export async function fetchVideoMeta(videoId: string): Promise<VideoMeta> {
   const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(
     `https://www.youtube.com/watch?v=${videoId}`
   )}&format=json`
-  const res = await fetch(oembedUrl)
+  const res = await youtubeFetch(oembedUrl)
   if (!res.ok) throw new Error('영상 정보를 가져오지 못했습니다')
   const data = await res.json()
   return {

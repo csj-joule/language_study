@@ -1,6 +1,15 @@
-// 세션 쿠키 서명에 Web Crypto API를 사용한다 (Edge/Node 런타임 양쪽에서 모두 동작).
+// middleware.ts(Edge 런타임)가 이 파일을 가져오므로, node:crypto 등 Node 전용 모듈을
+// 쓰는 코드(accountDb.ts, credentials.ts)는 절대 여기서 import하지 않는다.
+// Web Crypto API(crypto.subtle)는 Edge/Node 양쪽에서 모두 동작한다.
+
 export const COOKIE_NAME = 'session'
 export const MAX_AGE_SECONDS = 60 * 60 * 24 * 30 // 30일
+
+function getSigningSecret(): string {
+  // 계정 비밀번호는 DB에서 여러 개로 관리될 수 있으므로, 세션 서명 비밀키는
+  // 별도의 SESSION_SECRET을 사용한다. 설정 전 호환을 위해 ADMIN_PASSWORD로 폴백한다.
+  return process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || ''
+}
 
 async function getKey(secret: string) {
   const enc = new TextEncoder()
@@ -28,20 +37,9 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-/** 아이디/비밀번호가 환경변수에 설정된 값과 일치하는지 확인 */
-export function checkCredentials(username: string, password: string): boolean {
-  const validUsername = process.env.ADMIN_USERNAME ?? ''
-  const validPassword = process.env.ADMIN_PASSWORD ?? ''
-  if (!validUsername || !validPassword) return false
-  return (
-    timingSafeEqual(username, validUsername) &&
-    timingSafeEqual(password, validPassword)
-  )
-}
-
 /** 로그인 성공 시 발급하는 서명된 세션 토큰 (발급시각.서명) */
 export async function createSessionToken(): Promise<string> {
-  const secret = process.env.ADMIN_PASSWORD ?? ''
+  const secret = getSigningSecret()
   const issuedAt = Date.now().toString()
   const key = await getKey(secret)
   const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(issuedAt))
@@ -56,7 +54,7 @@ export async function verifySessionToken(
   const [issuedAt, signature] = token.split('.')
   if (!issuedAt || !signature) return false
 
-  const secret = process.env.ADMIN_PASSWORD ?? ''
+  const secret = getSigningSecret()
   if (!secret) return false
 
   const key = await getKey(secret)

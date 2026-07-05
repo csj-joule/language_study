@@ -85,7 +85,14 @@
       "WebFetch(domain:neon.com)",
       "Bash(curl -s -c /tmp/lc4.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
       "Bash(time curl -s -b /tmp/lc4.txt \"http://localhost:3000/api/video-cache?video=BA8UxrSco10\")",
-      "Bash(curl -s -b /tmp/lc4.txt \"http://localhost:3000/api/video-cache\")"
+      "Bash(curl -s -b /tmp/lc4.txt \"http://localhost:3000/api/video-cache\")",
+      "Bash(curl -s -c /tmp/lc5.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -c /tmp/lc6.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b /tmp/lc6.txt \"http://localhost:3000/api/accounts\")",
+      "Bash(curl -s -b /tmp/lc6.txt -X POST \"http://localhost:3000/api/accounts\" -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
+      "Bash(curl -s -c /tmp/lc7.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
+      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=2\")",
+      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=1\")"
     ]
   }
 }

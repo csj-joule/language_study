@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { COOKIE_NAME, MAX_AGE_SECONDS, checkCredentials, createSessionToken } from '@/lib/auth'
+import { COOKIE_NAME, MAX_AGE_SECONDS, createSessionToken } from '@/lib/auth'
+import { checkCredentials } from '@/lib/credentials'
+
+// accountDb.ts가 password 해싱에 node:crypto의 scrypt를 사용하므로 Node 런타임이 필요하다.
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -10,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '아이디와 비밀번호를 입력해주세요' }, { status: 400 })
   }
 
-  if (!checkCredentials(username, password)) {
+  if (!(await checkCredentials(username, password))) {
     return NextResponse.json(
       { error: '아이디 또는 비밀번호가 올바르지 않습니다' },
       { status: 401 }

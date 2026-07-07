@@ -16,10 +16,13 @@ export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // 경로가 바뀌면(메뉴 항목 클릭 등) 메뉴를 닫는다
-  useEffect(() => {
+  // 경로가 바뀌면(메뉴 항목 클릭 등) 메뉴를 닫는다. 렌더 도중 상태를 맞추는
+  // 방식(React 권장 패턴)이라 별도 effect 없이 이전 경로와 비교해 처리한다.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // 메뉴 바깥을 클릭하면 닫는다
   useEffect(() => {

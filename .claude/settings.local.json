@@ -92,7 +92,10 @@
       "Bash(curl -s -b /tmp/lc6.txt -X POST \"http://localhost:3000/api/accounts\" -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
       "Bash(curl -s -c /tmp/lc7.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
       "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=2\")",
-      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=1\")"
+      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=1\")",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__computer",
+      "mcp__claude-in-chrome__javascript_tool"
     ]
   }
 }

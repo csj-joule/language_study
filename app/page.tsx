@@ -1,13 +1,34 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
+
+function EditIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const videos = useLiveQuery(() =>
     db.videos.orderBy("createdAt").reverse().toArray()
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   async function handleDelete(e: React.MouseEvent, videoId: string, title: string) {
     e.preventDefault();
@@ -20,6 +41,21 @@ export default function Home() {
       await db.segments.where("videoId").equals(videoId).delete();
       await db.videos.delete(videoId);
     });
+  }
+
+  function startEdit(e: React.MouseEvent | React.KeyboardEvent, video: { id: string; title: string }) {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingId(video.id);
+    setEditValue(video.title);
+  }
+
+  async function commitEdit(videoId: string) {
+    const trimmed = editValue.trim();
+    setEditingId(null);
+    if (trimmed) {
+      await db.videos.update(videoId, { title: trimmed });
+    }
   }
 
   return (
@@ -61,20 +97,56 @@ export default function Home() {
               className="h-16 w-28 flex-shrink-0 rounded object-cover"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate pr-6 font-medium">{video.title}</p>
+              {editingId === video.id ? (
+                <input
+                  data-testid={`video-title-input-${video.id}`}
+                  autoFocus
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      commitEdit(video.id);
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditingId(null);
+                    }
+                  }}
+                  onBlur={() => commitEdit(video.id)}
+                  className="w-full rounded border px-1.5 py-0.5 pr-6 text-sm font-medium"
+                />
+              ) : (
+                <p className="truncate pr-12 font-medium">{video.title}</p>
+              )}
               <p className="truncate text-sm text-neutral-500">
                 {video.channelTitle}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={(e) => handleDelete(e, video.id, video.title)}
-              aria-label="영상 삭제"
-              title="내 목록에서 삭제"
-              className="absolute right-2 top-2 rounded-full p-1 text-neutral-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-            >
-              ✕
-            </button>
+            <div className="absolute right-2 top-2 flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={(e) => startEdit(e, video)}
+                aria-label="제목 수정"
+                title="제목 수정"
+                className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+              >
+                <EditIcon />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleDelete(e, video.id, video.title)}
+                aria-label="영상 삭제"
+                title="내 목록에서 삭제"
+                className="rounded-full p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
           </Link>
         ))}
       </div>

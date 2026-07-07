@@ -14,8 +14,6 @@ import type { AnalyzedToken } from "@/lib/furigana";
 import { rebuildSegments, type PipelineProgress } from "@/lib/pipeline";
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5];
-const btn =
-  "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
 const iconBtn =
   "flex h-9 w-9 items-center justify-center rounded-md border hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
 const REBUILD_STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
@@ -308,8 +306,13 @@ export default function VideoPage() {
     <div className="flex flex-col gap-4">
       {/* 영상 + 컨트롤 + 현재 구간을 화면 상단에 고정 (아래 전체 목록과는 그림자로 구분) */}
       <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-3 border-b bg-neutral-50 px-4 pb-3 pt-3 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.08)]">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-lg font-semibold">{video.title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1
+            className="min-w-0 flex-1 truncate text-lg font-semibold"
+            title={video.title}
+          >
+            {video.title}
+          </h1>
           <button
             data-testid="btn-rebuild-segments"
             onClick={handleRebuildSegments}

@@ -16,11 +16,69 @@ import { rebuildSegments, type PipelineProgress } from "@/lib/pipeline";
 const RATES = [0.5, 0.75, 1, 1.25, 1.5];
 const btn =
   "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
+const iconBtn =
+  "flex h-9 w-9 items-center justify-center rounded-md border hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
 const REBUILD_STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
   transcript: "자막/번역 다시 가져오는 중...",
   saving: "저장 중...",
   done: "완료!",
 };
+
+function PrevIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="4" y="5" width="2.2" height="14" />
+      <path d="M20 5.5v13L8.5 12 20 5.5z" />
+    </svg>
+  );
+}
+
+function NextIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="17.8" y="5" width="2.2" height="14" />
+      <path d="M4 5.5v13L15.5 12 4 5.5z" />
+    </svg>
+  );
+}
+
+function ReplayIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 4 3 9 8 9" />
+    </svg>
+  );
+}
+
+function LoopIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
 
 export default function VideoPage() {
   const params = useParams<{ id: string }>();
@@ -285,30 +343,39 @@ export default function VideoPage() {
         <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
           <button
             data-testid="btn-prev"
-            className={btn}
+            aria-label="이전 구간"
+            title="이전 구간"
+            className={iconBtn}
             onClick={() => goTo(Math.max(0, latestRef.current.currentIndex - 1))}
           >
-            이전
+            <PrevIcon />
           </button>
           <button
             data-testid="btn-replay"
-            className={btn}
+            aria-label="다시 재생"
+            title="다시 재생"
+            className={iconBtn}
             onClick={() => goTo(latestRef.current.currentIndex)}
           >
-            다시 재생
+            <ReplayIcon />
           </button>
           <button
             data-testid="btn-next"
-            className={btn}
+            aria-label="다음 구간"
+            title="다음 구간"
+            className={iconBtn}
             onClick={() =>
               goTo(Math.min(segments.length - 1, latestRef.current.currentIndex + 1))
             }
           >
-            다음
+            <NextIcon />
           </button>
           <button
             data-testid="btn-loop"
-            className={`${btn} ${loop ? "bg-neutral-900 text-white hover:bg-neutral-900" : ""}`}
+            aria-label={`구간반복 ${loop ? "ON" : "OFF"}`}
+            title={`구간반복 ${loop ? "ON" : "OFF"}`}
+            aria-pressed={loop}
+            className={`${iconBtn} ${loop ? "border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-900" : ""}`}
             onClick={() =>
               setLoop((v) => {
                 const next = !v;
@@ -317,7 +384,7 @@ export default function VideoPage() {
               })
             }
           >
-            구간반복 {loop ? "ON" : "OFF"}
+            <LoopIcon />
           </button>
           <select
             data-testid="select-rate"

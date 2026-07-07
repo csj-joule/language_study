@@ -3,11 +3,8 @@
   "configurations": [
     {
       "name": "web",
-      "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": [
-        "-lc",
-        "export PATH=/Users/seungjinchoi/.nvm/versions/node/v20.20.2/bin:$PATH && npm run dev"
-      ],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 3000
     }
   ]

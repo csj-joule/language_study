@@ -12,6 +12,7 @@ import {
 import { SegmentCard } from "@/components/segment/SegmentCard";
 import type { AnalyzedToken } from "@/lib/furigana";
 import { rebuildSegments, type PipelineProgress } from "@/lib/pipeline";
+import type { VocabEntry } from "@/lib/types";
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5];
 const iconBtn =
@@ -93,6 +94,15 @@ export default function VideoPage() {
     () => db.bookmarks.where("videoId").equals(videoId).toArray(),
     [videoId]
   );
+  // 단어장은 여러 기기가 공유하는 서버(Neon Postgres)에 저장되므로 IndexedDB가
+  // 아니라 /api/vocab을 통해 불러오고, 추가/삭제 후 로컬 상태를 직접 갱신한다.
+  const [vocabEntries, setVocabEntries] = useState<VocabEntry[] | null>(null);
+  useEffect(() => {
+    fetch("/api/vocab")
+      .then((res) => res.json())
+      .then((data) => setVocabEntries(data.entries ?? []))
+      .catch((err) => console.error("단어장 불러오기 실패:", err));
+  }, []);
 
   const playerRef = useRef<YoutubePlayerHandle>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -223,6 +233,86 @@ export default function VideoPage() {
     (bookmarks ?? []).map((b) => b.segmentId)
   );
   const currentSegment = currentIndex >= 0 ? segments[currentIndex] : null;
+
+  // 단어(품사 있음)와 문구(품사 없음)를 같은 테이블에 저장하므로, surface+baseForm
+  // 조합을 키로 삼아 이미 저장된 항목인지 구분한다.
+  const wordVocabKey = (surface: string, baseForm?: string) =>
+    `${surface}::${baseForm ?? ""}`;
+  const savedWordEntries = (vocabEntries ?? []).filter((v) => v.pos);
+  const savedPhraseEntries = (vocabEntries ?? []).filter((v) => !v.pos);
+  const savedWordKeys = new Set(
+    savedWordEntries.map((v) => wordVocabKey(v.surface, v.baseForm))
+  );
+  const isPhraseSaved = analysisText
+    ? savedPhraseEntries.some((v) => v.surface === analysisText)
+    : false;
+
+  async function addVocabEntry(entry: Omit<VocabEntry, "id" | "createdAt">) {
+    const id = uuidv4();
+    const res = await fetch("/api/vocab", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...entry }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("단어장 저장 실패:", data.error);
+      alert(data.error ?? "단어장 저장에 실패했습니다");
+      return;
+    }
+    setVocabEntries((prev) => [data.entry, ...(prev ?? [])]);
+  }
+
+  async function removeVocabEntry(id: string) {
+    const res = await fetch(`/api/vocab?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      console.error("단어장 삭제 실패:", data?.error);
+      alert(data?.error ?? "단어장 삭제에 실패했습니다");
+      return;
+    }
+    setVocabEntries((prev) => (prev ?? []).filter((v) => v.id !== id));
+  }
+
+  async function toggleVocabWord(token: AnalyzedToken) {
+    const key = wordVocabKey(token.surface, token.baseForm);
+    const existing = savedWordEntries.find(
+      (v) => wordVocabKey(v.surface, v.baseForm) === key
+    );
+    if (existing) {
+      await removeVocabEntry(existing.id);
+    } else {
+      await addVocabEntry({
+        surface: token.surface,
+        reading: token.reading,
+        pos: token.pos,
+        baseForm: token.baseForm,
+        youtubeId: video!.youtubeId,
+        videoTitle: video!.title,
+        segmentText: currentSegment?.textJa,
+        segmentStartSec: currentSegment?.startSec,
+      });
+    }
+  }
+
+  async function toggleVocabPhrase() {
+    if (!analysisText) return;
+    const existing = savedPhraseEntries.find((v) => v.surface === analysisText);
+    if (existing) {
+      await removeVocabEntry(existing.id);
+    } else {
+      await addVocabEntry({
+        surface: analysisText,
+        meaningKo: analysisResult?.translation,
+        youtubeId: video!.youtubeId,
+        videoTitle: video!.title,
+        segmentText: currentSegment?.textJa,
+        segmentStartSec: currentSegment?.startSec,
+      });
+    }
+  }
 
   function goTo(index: number, autoplay = true) {
     const seg = segments![index];
@@ -448,31 +538,58 @@ export default function VideoPage() {
               onClick={() => setAnalysisExpanded((v) => !v)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
             >
-              <span className="flex items-center gap-1.5 text-sm font-medium">
+              <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
                 <span className="text-neutral-400">
                   {analysisExpanded ? "▾" : "▸"}
                 </span>
-                📖 {analysisText}
+                <span className="truncate">📖 {analysisText}</span>
               </span>
-              <span
-                data-testid="btn-close-analysis"
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAnalysisText(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  data-testid="btn-save-phrase-vocab"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleVocabPhrase();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleVocabPhrase();
+                    }
+                  }}
+                  aria-label={
+                    isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"
+                  }
+                  title={isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"}
+                  className={`text-lg leading-none ${
+                    isPhraseSaved ? "text-amber-500" : "text-neutral-300 hover:text-neutral-500"
+                  }`}
+                >
+                  {isPhraseSaved ? "★" : "☆"}
+                </span>
+                <span
+                  data-testid="btn-close-analysis"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
                     e.stopPropagation();
                     setAnalysisText(null);
-                  }
-                }}
-                aria-label="분석 닫기"
-                className="shrink-0 text-neutral-400 hover:text-neutral-700"
-              >
-                ✕
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAnalysisText(null);
+                    }
+                  }}
+                  aria-label="분석 닫기"
+                  className="text-neutral-400 hover:text-neutral-700"
+                >
+                  ✕
+                </span>
               </span>
             </button>
 
@@ -488,6 +605,9 @@ export default function VideoPage() {
                     <table className="w-full text-left text-sm">
                       <thead>
                         <tr className="text-neutral-500">
+                          <th className="w-8 pb-1 font-medium">
+                            <span className="sr-only">단어장 저장</span>
+                          </th>
                           <th className="pr-3 pb-1 font-medium">단어</th>
                           <th className="pr-3 pb-1 font-medium">읽기</th>
                           <th className="pr-3 pb-1 font-medium">품사</th>
@@ -497,6 +617,17 @@ export default function VideoPage() {
                       <tbody>
                         {analysisResult.tokens.map((t, i) => (
                           <tr key={i} className="border-t">
+                            <td className="py-1">
+                              <input
+                                type="checkbox"
+                                data-testid={`checkbox-vocab-word-${i}`}
+                                aria-label={`${t.surface} 단어장에 저장`}
+                                checked={savedWordKeys.has(
+                                  wordVocabKey(t.surface, t.baseForm)
+                                )}
+                                onChange={() => toggleVocabWord(t)}
+                              />
+                            </td>
                             <td className="py-1 pr-3">{t.surface}</td>
                             <td className="py-1 pr-3 text-neutral-500">
                               {t.reading ?? "-"}

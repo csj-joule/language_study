@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 const LINKS = [
   { href: "/", label: "홈" },
   { href: "/bookmarks", label: "북마크" },
+  { href: "/vocab", label: "단어장" },
   { href: "/history", label: "캐시 히스토리" },
   { href: "/accounts", label: "계정 관리" },
 ];

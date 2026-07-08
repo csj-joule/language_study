@@ -40,6 +40,11 @@ function timingSafeEqual(a: string, b: string): boolean {
 /** 로그인 성공 시 발급하는 서명된 세션 토큰 (발급시각.서명) */
 export async function createSessionToken(): Promise<string> {
   const secret = getSigningSecret()
+  if (!secret) {
+    throw new Error(
+      'SESSION_SECRET 또는 ADMIN_PASSWORD 환경변수가 설정되어 있지 않아 로그인 세션을 발급할 수 없습니다'
+    )
+  }
   const issuedAt = Date.now().toString()
   const key = await getKey(secret)
   const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(issuedAt))

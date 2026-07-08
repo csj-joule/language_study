@@ -1,15 +1,31 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+const SAVED_USERNAME_KEY = "shadowing-saved-username";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberId, setRememberId] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // 브라우저에 저장해둔 아이디가 있으면 불러와 채워준다 (비밀번호는 저장하지 않는다).
+  // localStorage는 서버 렌더링 중에는 접근할 수 없어 마운트 이후(effect)에 읽어야 하는,
+  // 구독 콜백 패턴이 적용되지 않는 정당한 예외라 이 effect 안에서는 규칙을 끈다.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SAVED_USERNAME_KEY);
+    if (saved) {
+      setUsername(saved);
+      setRememberId(true);
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,6 +41,11 @@ function LoginForm() {
       if (!res.ok) {
         setError(data.error ?? "로그인에 실패했습니다");
         return;
+      }
+      if (rememberId) {
+        window.localStorage.setItem(SAVED_USERNAME_KEY, username);
+      } else {
+        window.localStorage.removeItem(SAVED_USERNAME_KEY);
       }
       const next = searchParams.get("next") || "/";
       router.push(next);
@@ -57,6 +78,14 @@ function LoginForm() {
           autoComplete="current-password"
           className="rounded-md border px-3 py-2"
         />
+        <label className="flex items-center gap-1.5 text-sm text-neutral-600">
+          <input
+            type="checkbox"
+            checked={rememberId}
+            onChange={(e) => setRememberId(e.target.checked)}
+          />
+          아이디 저장
+        </label>
         <button
           type="submit"
           disabled={loading || !username || !password}

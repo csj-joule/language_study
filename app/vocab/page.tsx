@@ -5,12 +5,20 @@ import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { VocabEntry } from "@/lib/types";
+import type { ExampleSentence } from "@/lib/gemini";
 
 export default function VocabPage() {
   const [entries, setEntries] = useState<VocabEntry[] | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [examplesByEntry, setExamplesByEntry] = useState<
+    Record<string, ExampleSentence[]>
+  >({});
+  const [exampleLoadingId, setExampleLoadingId] = useState<string | null>(null);
+  const [exampleErrorByEntry, setExampleErrorByEntry] = useState<
+    Record<string, string>
+  >({});
   // 단어장 자체는 서버(Neon Postgres)에서 불러오지만, "원본으로 이동" 링크는
   // 이 기기에 해당 영상이 이미 로컬로 등록돼 있을 때만 만들 수 있어 로컬 목록도 함께 조회한다.
   const localVideos = useLiveQuery(() => db.videos.toArray());
@@ -56,6 +64,37 @@ export default function VocabPage() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다");
+    }
+  }
+
+  async function handleGenerateExamples(entry: VocabEntry) {
+    setExampleLoadingId(entry.id);
+    setExampleErrorByEntry((prev) => {
+      const next = { ...prev };
+      delete next[entry.id];
+      return next;
+    });
+    try {
+      const res = await fetch("/api/vocab/examples", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surface: entry.surface,
+          reading: entry.reading,
+          meaningKo: entry.meaningKo,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "예문 생성에 실패했습니다");
+      setExamplesByEntry((prev) => ({ ...prev, [entry.id]: data.examples ?? [] }));
+    } catch (err) {
+      setExampleErrorByEntry((prev) => ({
+        ...prev,
+        [entry.id]:
+          err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다",
+      }));
+    } finally {
+      setExampleLoadingId(null);
     }
   }
 
@@ -117,13 +156,18 @@ export default function VocabPage() {
             entry.videoTitle &&
             `${entry.videoTitle}${entry.segmentText ? ` · ${entry.segmentText}` : ""}`;
 
+          const examples = examplesByEntry[entry.id];
+          const exampleError = exampleErrorByEntry[entry.id];
+          const generatingExamples = exampleLoadingId === entry.id;
+
           return (
             <div
               key={entry.id}
-              className={`flex items-start justify-between gap-3 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm transition-opacity ${
+              className={`flex flex-col gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm transition-opacity ${
                 entry.completed ? "opacity-50" : ""
               }`}
             >
+              <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span
@@ -186,6 +230,40 @@ export default function VocabPage() {
                 >
                   ✕
                 </button>
+              </div>
+              </div>
+
+              <div className="border-t border-neutral-100 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleGenerateExamples(entry)}
+                  disabled={generatingExamples}
+                  className="rounded-full border border-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                >
+                  {generatingExamples
+                    ? "예문 만드는 중..."
+                    : examples
+                      ? "예문 다시 만들기"
+                      : "예문 3개 만들기"}
+                </button>
+
+                {exampleError && (
+                  <p className="mt-2 text-xs text-red-600">{exampleError}</p>
+                )}
+
+                {examples && examples.length > 0 && (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {examples.map((ex, i) => (
+                      <li
+                        key={i}
+                        className="rounded-xl bg-neutral-50 px-3 py-2 text-sm"
+                      >
+                        <p className="font-medium">{ex.ja}</p>
+                        <p className="mt-0.5 text-neutral-500">{ex.ko}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           );

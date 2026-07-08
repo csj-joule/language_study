@@ -63,6 +63,7 @@ export type AnalyzedToken = {
   reading?: string
   pos: string
   baseForm?: string
+  meaningKo?: string
 }
 
 /** 선택한 일본어 텍스트를 형태소 단위로 분석 (사전형/품사/읽기) */

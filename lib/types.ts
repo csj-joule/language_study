@@ -47,6 +47,7 @@ export type VocabEntry = {
   videoTitle?: string
   segmentText?: string
   segmentStartSec?: number
+  completed?: boolean
   createdAt: string
 }
 

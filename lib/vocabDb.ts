@@ -34,8 +34,14 @@ async function ensureSchema(): Promise<void> {
           video_title TEXT,
           segment_text TEXT,
           segment_start_sec DOUBLE PRECISION,
+          completed BOOLEAN NOT NULL DEFAULT false,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
+      `
+      // 이미 만들어진 테이블에는 CREATE TABLE IF NOT EXISTS가 컬럼을 추가해주지
+      // 않으므로, 나중에 추가된 completed 컬럼은 별도로 마이그레이션한다.
+      await sql`
+        ALTER TABLE vocab_entries ADD COLUMN IF NOT EXISTS completed BOOLEAN NOT NULL DEFAULT false
       `
     })()
   }
@@ -53,6 +59,7 @@ type VocabRow = {
   video_title: string | null
   segment_text: string | null
   segment_start_sec: number | null
+  completed: boolean
   created_at: string
 }
 
@@ -68,6 +75,7 @@ function toEntry(r: VocabRow): VocabEntry {
     videoTitle: r.video_title ?? undefined,
     segmentText: r.segment_text ?? undefined,
     segmentStartSec: r.segment_start_sec ?? undefined,
+    completed: r.completed,
     createdAt: r.created_at,
   }
 }
@@ -79,7 +87,7 @@ export async function listVocabEntries(): Promise<VocabEntry[]> {
 
   const rows = await sql`
     SELECT id, surface, reading, pos, base_form, meaning_ko, youtube_id,
-           video_title, segment_text, segment_start_sec, created_at
+           video_title, segment_text, segment_start_sec, completed, created_at
     FROM vocab_entries
     ORDER BY created_at DESC
   `
@@ -102,7 +110,7 @@ export async function addVocabEntry(
       ${entry.videoTitle ?? null}, ${entry.segmentText ?? null}, ${entry.segmentStartSec ?? null}
     )
     RETURNING id, surface, reading, pos, base_form, meaning_ko, youtube_id,
-              video_title, segment_text, segment_start_sec, created_at
+              video_title, segment_text, segment_start_sec, completed, created_at
   `
   return toEntry(rows[0] as VocabRow)
 }
@@ -112,4 +120,14 @@ export async function deleteVocabEntry(id: string): Promise<void> {
   if (!sql) throw new Error('DATABASE_URL이 설정되어 있지 않습니다')
   await ensureSchema()
   await sql`DELETE FROM vocab_entries WHERE id = ${id}`
+}
+
+export async function updateVocabCompleted(
+  id: string,
+  completed: boolean
+): Promise<void> {
+  const sql = getSql()
+  if (!sql) throw new Error('DATABASE_URL이 설정되어 있지 않습니다')
+  await ensureSchema()
+  await sql`UPDATE vocab_entries SET completed = ${completed} WHERE id = ${id}`
 }

@@ -16,7 +16,7 @@ import type { VocabEntry } from "@/lib/types";
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5];
 const iconBtn =
-  "flex h-9 w-9 items-center justify-center rounded-md border hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
+  "flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-neutral-200 disabled:hover:text-neutral-600";
 const REBUILD_STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
   transcript: "자막/번역 다시 가져오는 중...",
   saving: "저장 중...",
@@ -289,6 +289,7 @@ export default function VideoPage() {
         reading: token.reading,
         pos: token.pos,
         baseForm: token.baseForm,
+        meaningKo: token.meaningKo,
         youtubeId: video!.youtubeId,
         videoTitle: video!.title,
         segmentText: currentSegment?.textJa,
@@ -395,10 +396,10 @@ export default function VideoPage() {
   return (
     <div className="flex flex-col gap-4">
       {/* 영상 + 컨트롤 + 현재 구간을 화면 상단에 고정 (아래 전체 목록과는 그림자로 구분) */}
-      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-3 border-b bg-neutral-50 px-4 pb-3 pt-3 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.08)]">
+      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-3 border-b border-neutral-200/70 bg-white/85 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
         <div className="flex items-center justify-between gap-2">
           <h1
-            className="min-w-0 flex-1 truncate text-lg font-semibold"
+            className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight"
             title={video.title}
           >
             {video.title}
@@ -407,7 +408,7 @@ export default function VideoPage() {
             data-testid="btn-rebuild-segments"
             onClick={handleRebuildSegments}
             disabled={rebuilding}
-            className="shrink-0 text-xs text-neutral-500 hover:text-neutral-800 hover:underline disabled:opacity-50 disabled:no-underline"
+            className="shrink-0 text-xs text-neutral-500 hover:text-indigo-600 hover:underline disabled:opacity-50 disabled:no-underline"
           >
             {rebuilding
               ? rebuildProgress
@@ -433,7 +434,7 @@ export default function VideoPage() {
           }}
         />
 
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm">
           <button
             data-testid="btn-prev"
             aria-label="이전 구간"
@@ -468,7 +469,7 @@ export default function VideoPage() {
             aria-label={`구간반복 ${loop ? "ON" : "OFF"}`}
             title={`구간반복 ${loop ? "ON" : "OFF"}`}
             aria-pressed={loop}
-            className={`${iconBtn} ${loop ? "border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-900" : ""}`}
+            className={`${iconBtn} ${loop ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-600 hover:bg-indigo-600 hover:text-white" : ""}`}
             onClick={() =>
               setLoop((v) => {
                 const next = !v;
@@ -483,7 +484,7 @@ export default function VideoPage() {
             data-testid="select-rate"
             value={rate}
             onChange={(e) => handleRateChange(Number(e.target.value))}
-            className="rounded-md border px-2 py-1.5 text-sm"
+            className="rounded-xl border border-neutral-200 px-2 py-1.5 text-sm text-neutral-600 outline-none transition-colors hover:border-indigo-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           >
             {RATES.map((r) => (
               <option key={r} value={r}>
@@ -532,7 +533,7 @@ export default function VideoPage() {
         )}
 
         {analysisText && (
-          <div className="rounded-lg border bg-white shadow-sm">
+          <div className="rounded-2xl border border-neutral-200/70 bg-white shadow-sm">
             <button
               data-testid="btn-toggle-analysis"
               onClick={() => setAnalysisExpanded((v) => !v)}
@@ -564,7 +565,7 @@ export default function VideoPage() {
                     isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"
                   }
                   title={isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"}
-                  className={`text-lg leading-none ${
+                  className={`text-lg leading-none transition-transform hover:scale-110 ${
                     isPhraseSaved ? "text-amber-500" : "text-neutral-300 hover:text-neutral-500"
                   }`}
                 >
@@ -611,12 +612,12 @@ export default function VideoPage() {
                           <th className="pr-3 pb-1 font-medium">단어</th>
                           <th className="pr-3 pb-1 font-medium">읽기</th>
                           <th className="pr-3 pb-1 font-medium">품사</th>
-                          <th className="pb-1 font-medium">사전형</th>
+                          <th className="pb-1 font-medium">번역</th>
                         </tr>
                       </thead>
                       <tbody>
                         {analysisResult.tokens.map((t, i) => (
-                          <tr key={i} className="border-t">
+                          <tr key={i} className="border-t border-neutral-100 hover:bg-indigo-50/40">
                             <td className="py-1">
                               <input
                                 type="checkbox"
@@ -634,7 +635,7 @@ export default function VideoPage() {
                             </td>
                             <td className="py-1 pr-3 text-neutral-500">{t.pos}</td>
                             <td className="py-1 text-neutral-500">
-                              {t.baseForm ?? "-"}
+                              {t.meaningKo || "-"}
                             </td>
                           </tr>
                         ))}
@@ -649,7 +650,7 @@ export default function VideoPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-medium text-neutral-500">전체 스크립트</h2>
+        <h2 className="text-sm font-semibold text-neutral-500">전체 스크립트</h2>
         {autoTranslating && (
           <span className="text-xs text-neutral-400">번역 채우는 중...</span>
         )}

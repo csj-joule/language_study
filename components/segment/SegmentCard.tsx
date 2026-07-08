@@ -95,17 +95,21 @@ export function SegmentCard({
       ref={innerRef}
       data-testid={testId}
       style={style}
-      className={`rounded-lg border p-3 transition-colors ${
+      className={`rounded-2xl border p-3 transition-all ${
         emphasized
-          ? "border-2 border-blue-500 bg-white shadow-md"
+          ? "border-indigo-300 bg-indigo-50/40 shadow-md shadow-indigo-600/5"
           : isCurrent
-            ? "border-neutral-900 bg-neutral-100"
-            : "bg-white"
+            ? "border-indigo-200 bg-indigo-50/60"
+            : "border-neutral-200/70 bg-white hover:border-indigo-200"
       }`}
     >
       {emphasized && (
-        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-blue-600">
-          <span>▶</span> 지금 재생 중
+        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-indigo-600">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500" />
+          </span>
+          지금 재생 중
         </p>
       )}
       <div className="flex items-start justify-between gap-2">
@@ -125,7 +129,7 @@ export function SegmentCard({
           className={`flex-1 cursor-pointer text-left ${emphasized ? "text-xl" : "text-lg"}`}
         >
           {jaHidden ? (
-            <span className="select-none rounded bg-neutral-300 px-2 py-1 text-neutral-300">
+            <span className="select-none rounded-md bg-neutral-300 px-2 py-1 text-neutral-300">
               ████████████
             </span>
           ) : (
@@ -136,7 +140,9 @@ export function SegmentCard({
           data-testid={testId ? `${testId}-bookmark` : undefined}
           onClick={onToggleBookmark}
           aria-label="북마크"
-          className="shrink-0 text-xl leading-none"
+          className={`shrink-0 text-xl leading-none transition-transform hover:scale-110 ${
+            isBookmarked ? "text-amber-500" : "text-neutral-300"
+          }`}
         >
           {isBookmarked ? "★" : "☆"}
         </button>
@@ -144,10 +150,10 @@ export function SegmentCard({
       <button
         data-testid={testId ? `${testId}-ko` : undefined}
         onClick={() => koHidden && onRevealKo()}
-        className="mt-1 block w-full text-left text-sm text-neutral-600"
+        className="mt-1 block w-full text-left text-sm text-neutral-500"
       >
         {koHidden ? (
-          <span className="select-none rounded bg-neutral-200 px-2 py-1 text-neutral-200">
+          <span className="select-none rounded-md bg-neutral-200 px-2 py-1 text-neutral-200">
             ████████
           </span>
         ) : (

@@ -20,10 +20,10 @@ export default function BookmarksPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">북마크</h1>
+      <h1 className="text-2xl font-bold tracking-tight">북마크</h1>
 
       {bookmarks?.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/60 p-10 text-center text-neutral-500">
           아직 저장한 북마크가 없습니다.
         </div>
       )}
@@ -35,13 +35,13 @@ export default function BookmarksPage() {
             <Link
               key={bookmark.id}
               href={`/videos/${video!.id}?t=${segment!.startSec}`}
-              className="flex gap-3 rounded-lg border bg-white p-3 hover:border-neutral-400"
+              className="flex gap-3 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={video!.thumbnailUrl}
                 alt={video!.title}
-                className="h-16 w-28 flex-shrink-0 rounded object-cover"
+                className="h-16 w-28 flex-shrink-0 rounded-xl object-cover"
               />
               <div className="min-w-0">
                 <p className="truncate text-sm text-neutral-500">

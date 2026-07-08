@@ -61,10 +61,10 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">내 영상</h1>
+        <h1 className="text-2xl font-bold tracking-tight">내 영상</h1>
         <Link
           href="/add"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 transition-colors hover:bg-indigo-700"
         >
           + 영상 추가
         </Link>
@@ -75,7 +75,7 @@ export default function Home() {
       )}
 
       {videos?.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/60 p-10 text-center text-neutral-500">
           <p>아직 등록된 영상이 없습니다.</p>
           <p className="mt-1 text-sm">
             일본어 자막이 있는 유튜브 영상 URL을 추가해보세요.
@@ -88,13 +88,13 @@ export default function Home() {
           <Link
             key={video.id}
             href={`/videos/${video.id}`}
-            className="group relative flex gap-3 rounded-lg border bg-white p-3 hover:border-neutral-400"
+            className="group relative flex gap-3 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={video.thumbnailUrl}
               alt={video.title}
-              className="h-16 w-28 flex-shrink-0 rounded object-cover"
+              className="h-16 w-28 flex-shrink-0 rounded-xl object-cover"
             />
             <div className="min-w-0 flex-1">
               {editingId === video.id ? (
@@ -118,7 +118,7 @@ export default function Home() {
                     }
                   }}
                   onBlur={() => commitEdit(video.id)}
-                  className="w-full rounded border px-1.5 py-0.5 pr-6 text-sm font-medium"
+                  className="w-full rounded-lg border border-indigo-300 px-1.5 py-0.5 pr-6 text-sm font-medium outline-none ring-2 ring-indigo-100"
                 />
               ) : (
                 <p className="truncate pr-12 font-medium">{video.title}</p>
@@ -133,7 +133,7 @@ export default function Home() {
                 onClick={(e) => startEdit(e, video)}
                 aria-label="제목 수정"
                 title="제목 수정"
-                className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
               >
                 <EditIcon />
               </button>

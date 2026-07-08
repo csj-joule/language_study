@@ -58,17 +58,25 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] w-full max-w-sm flex-col justify-center gap-4">
-      <h1 className="text-center text-xl font-semibold">日本語シャドーイング</h1>
-      <p className="text-center text-sm text-neutral-500">로그인이 필요합니다</p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center gap-6 px-4">
+      <div className="flex flex-col items-center gap-2">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-xl shadow-lg shadow-indigo-600/25">
+          🎧
+        </span>
+        <h1 className="text-center text-xl font-bold tracking-tight">日本語シャドーイング</h1>
+        <p className="text-center text-sm text-neutral-500">로그인이 필요합니다</p>
+      </div>
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-3 rounded-2xl border border-neutral-200/70 bg-white p-6 shadow-sm"
+      >
         <input
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="아이디"
           autoComplete="username"
-          className="rounded-md border px-3 py-2"
+          className="rounded-xl border border-neutral-200 px-3 py-2.5 outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
         <input
           type="password"
@@ -76,7 +84,7 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="비밀번호"
           autoComplete="current-password"
-          className="rounded-md border px-3 py-2"
+          className="rounded-xl border border-neutral-200 px-3 py-2.5 outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
         <label className="flex items-center gap-1.5 text-sm text-neutral-600">
           <input
@@ -89,12 +97,12 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !username || !password}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="mt-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? "로그인 중..." : "로그인"}
         </button>
+        {error && <p className="text-center text-sm text-red-600">{error}</p>}
       </form>
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
     </div>
   );
 }

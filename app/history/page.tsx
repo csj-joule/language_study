@@ -58,7 +58,7 @@ export default function HistoryPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">서버 캐시 히스토리</h1>
+        <h1 className="text-2xl font-bold tracking-tight">서버 캐시 히스토리</h1>
         <p className="mt-1 text-sm text-neutral-500">
           한 번 자막/번역을 가져온 영상은 여기 서버에 저장되어, 어떤 기기에서 다시
           추가하더라도 API를 다시 호출하지 않고 즉시 불러옵니다.
@@ -66,7 +66,7 @@ export default function HistoryPage() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
       )}
 
       {videos === null && !error && (
@@ -74,7 +74,7 @@ export default function HistoryPage() {
       )}
 
       {videos?.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/60 p-10 text-center text-neutral-500">
           <p>서버에 캐시된 영상이 없습니다.</p>
         </div>
       )}
@@ -83,13 +83,13 @@ export default function HistoryPage() {
         {videos?.map((video) => (
           <div
             key={video.youtubeId}
-            className="flex items-center gap-3 rounded-lg border bg-white p-3"
+            className="flex items-center gap-3 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={video.thumbnailUrl}
               alt={video.title}
-              className="h-14 w-24 flex-shrink-0 rounded object-cover"
+              className="h-14 w-24 flex-shrink-0 rounded-xl object-cover"
             />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{video.title}</p>
@@ -102,7 +102,7 @@ export default function HistoryPage() {
               type="button"
               onClick={() => handleDelete(video.youtubeId, video.title)}
               disabled={deletingId === video.youtubeId}
-              className="flex-shrink-0 rounded-md border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
+              className="flex-shrink-0 rounded-xl border border-neutral-200 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
             >
               {deletingId === video.youtubeId ? "삭제 중..." : "삭제"}
             </button>

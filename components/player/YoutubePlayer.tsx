@@ -92,7 +92,7 @@ export const YoutubePlayer = forwardRef<YoutubePlayerHandle, Props>(
     return (
       <div
         ref={containerRef}
-        className="mx-auto aspect-video max-h-[20vh] w-auto max-w-full overflow-hidden rounded-lg bg-black sm:mx-0 sm:h-auto sm:max-h-none sm:w-full"
+        className="mx-auto aspect-video max-h-[20vh] w-auto max-w-full overflow-hidden rounded-2xl bg-black shadow-sm sm:mx-0 sm:h-auto sm:max-h-none sm:w-full"
       />
     );
   }

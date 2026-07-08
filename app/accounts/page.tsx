@@ -74,17 +74,17 @@ export default function AccountsPage() {
   return (
     <div className="flex max-w-lg flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">계정 관리</h1>
+        <h1 className="text-2xl font-bold tracking-tight">계정 관리</h1>
         <p className="mt-1 text-sm text-neutral-500">
           이 앱에 로그인할 수 있는 관리자 계정을 추가/삭제합니다.
         </p>
       </div>
 
       {warning && (
-        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{warning}</p>
+        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{warning}</p>
       )}
       {error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
       )}
 
       {accounts === null && !warning && !error && (
@@ -95,7 +95,7 @@ export default function AccountsPage() {
         {accounts?.map((account) => (
           <div
             key={account.id}
-            className="flex items-center justify-between rounded-lg border bg-white p-3"
+            className="flex items-center justify-between rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm"
           >
             <div>
               <p className="font-medium">{account.username}</p>
@@ -112,7 +112,7 @@ export default function AccountsPage() {
                   ? "마지막 계정은 삭제할 수 없습니다"
                   : "삭제"
               }
-              className="rounded-md border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
+              className="rounded-xl border border-neutral-200 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
             >
               {deletingId === account.id ? "삭제 중..." : "삭제"}
             </button>
@@ -122,7 +122,7 @@ export default function AccountsPage() {
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-lg border bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-neutral-200/70 bg-white p-4 shadow-sm"
       >
         <p className="text-sm font-medium">새 계정 추가</p>
         <input
@@ -131,7 +131,7 @@ export default function AccountsPage() {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="아이디"
           disabled={!!warning}
-          className="rounded-md border px-3 py-2 disabled:bg-neutral-100"
+          className="rounded-xl border border-neutral-200 px-3 py-2 outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-neutral-100"
         />
         <input
           type="password"
@@ -139,12 +139,12 @@ export default function AccountsPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="비밀번호 (4자 이상)"
           disabled={!!warning}
-          className="rounded-md border px-3 py-2 disabled:bg-neutral-100"
+          className="rounded-xl border border-neutral-200 px-3 py-2 outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-neutral-100"
         />
         <button
           type="submit"
           disabled={adding || !!warning || !username.trim() || password.length < 4}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none"
         >
           {adding ? "추가 중..." : "추가"}
         </button>

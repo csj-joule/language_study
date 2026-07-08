@@ -40,9 +40,10 @@ export default function SiteHeader() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="h-14 border-b bg-white sticky top-0 z-30">
+    <header className="h-14 border-b border-neutral-200/70 bg-white/80 backdrop-blur-md sticky top-0 z-30 supports-[backdrop-filter]:bg-white/60">
       <div ref={menuRef} className="relative h-full max-w-3xl mx-auto flex items-center px-4">
-        <Link href="/" className="font-semibold">
+        <Link href="/" className="flex items-center gap-1.5 font-semibold tracking-tight">
+          <span className="h-2 w-2 rounded-full bg-indigo-600" />
           日本語シャドーイング
         </Link>
 
@@ -52,7 +53,7 @@ export default function SiteHeader() {
           aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="ml-auto flex h-9 w-9 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
         >
           {open ? (
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -71,25 +72,26 @@ export default function SiteHeader() {
         {open && (
           <nav
             data-testid="menu-dropdown"
-            className="absolute right-0 top-[calc(100%+1px)] flex w-48 flex-col overflow-hidden rounded-md border bg-white py-1 shadow-lg"
+            className="absolute right-0 top-[calc(100%+0.5rem)] flex w-48 flex-col overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/95 py-1.5 shadow-xl shadow-neutral-900/5 backdrop-blur-md"
           >
             {LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-4 py-2 text-sm hover:bg-neutral-100 ${
+                className={`mx-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                   pathname === link.href
-                    ? "font-medium text-neutral-900"
-                    : "text-neutral-600"
+                    ? "bg-indigo-50 font-medium text-indigo-600"
+                    : "text-neutral-600 hover:bg-neutral-100"
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-            <form action="/api/logout" method="POST" className="border-t">
+            <div className="my-1.5 border-t border-neutral-100" />
+            <form action="/api/logout" method="POST" className="px-1.5 pb-0.5">
               <button
                 type="submit"
-                className="w-full px-4 py-2 text-left text-sm text-neutral-600 hover:bg-neutral-100"
+                className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-500 transition-colors hover:bg-red-50 hover:text-red-600"
               >
                 로그아웃
               </button>

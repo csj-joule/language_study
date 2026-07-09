@@ -59,6 +59,23 @@ function ReplayIcon() {
   );
 }
 
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M6 4.5v15L20 12 6 4.5z" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="5.5" y="4.5" width="4.5" height="15" />
+      <rect x="14" y="4.5" width="4.5" height="15" />
+    </svg>
+  );
+}
+
 function LoopIcon() {
   return (
     <svg
@@ -109,6 +126,7 @@ export default function VideoPage() {
   const appliedInitialSeekRef = useRef(false);
 
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [loop, setLoop] = useState(false);
   const [loopIndex, setLoopIndex] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
@@ -427,6 +445,7 @@ export default function VideoPage() {
           ref={playerRef}
           youtubeId={video.youtubeId}
           onTimeUpdate={setCurrentTime}
+          onPlayStateChange={setIsPlaying}
           onReady={() => {
             if (!appliedInitialSeekRef.current && initialSeekSec) {
               appliedInitialSeekRef.current = true;
@@ -484,6 +503,19 @@ export default function VideoPage() {
             }
           >
             <LoopIcon />
+          </button>
+          <button
+            data-testid="btn-play-pause"
+            aria-label={isPlaying ? "일시정지" : "재생"}
+            title={isPlaying ? "일시정지" : "재생"}
+            className={iconBtn}
+            onClick={() =>
+              isPlaying
+                ? playerRef.current?.pauseVideo()
+                : playerRef.current?.playVideo()
+            }
+          >
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
           <select
             data-testid="select-rate"

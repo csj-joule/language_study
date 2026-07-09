@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Segment } from "@/lib/types";
 import { FuriganaText } from "./FuriganaText";
 
@@ -38,14 +38,19 @@ export function SegmentCard({
   const jaRef = useRef<HTMLDivElement | null>(null);
   const lastAnalyzedRef = useRef("");
 
-  const analyzeIfNew = useCallback(
-    (text: string) => {
-      if (!text || text === lastAnalyzedRef.current) return;
-      lastAnalyzedRef.current = text;
-      onAnalyzeSelection?.(text);
-    },
-    [onAnalyzeSelection]
-  );
+  // 부모(영상 재생 화면)는 재생 중 100ms마다 리렌더링되면서 onAnalyzeSelection도
+  // 매번 새로 만들어질 수 있다. ref로 최신 값만 따로 들고 있으면, 아래
+  // selectionchange effect가 그 재생성 빈도와 무관하게 안정적으로 유지된다.
+  const onAnalyzeSelectionRef = useRef(onAnalyzeSelection);
+  useEffect(() => {
+    onAnalyzeSelectionRef.current = onAnalyzeSelection;
+  });
+
+  function analyzeIfNew(text: string) {
+    if (!text || text === lastAnalyzedRef.current) return;
+    lastAnalyzedRef.current = text;
+    onAnalyzeSelectionRef.current?.(text);
+  }
 
   function handleJaMouseUp() {
     if (jaHidden) {
@@ -65,7 +70,7 @@ export function SegmentCard({
   // mouseup이 다시 발생하지 않는다. 그래서 selectionchange를 함께 감지해
   // 선택이 이 카드 안에서 끝났을 때도 분석이 트리거되도록 보완한다.
   useEffect(() => {
-    if (jaHidden || !onAnalyzeSelection) return;
+    if (jaHidden || !onAnalyzeSelectionRef.current) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     function handleSelectionChange() {
@@ -88,7 +93,7 @@ export function SegmentCard({
       document.removeEventListener("selectionchange", handleSelectionChange);
       if (timer) clearTimeout(timer);
     };
-  }, [jaHidden, onAnalyzeSelection, analyzeIfNew]);
+  }, [jaHidden]);
 
   return (
     <div

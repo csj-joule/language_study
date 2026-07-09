@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuidv4 } from "uuid";
@@ -225,6 +225,32 @@ export default function VideoPage() {
     })();
   }, [segments, video?.youtubeId]);
 
+  // setState 호출뿐이라 의존성이 없다. useCallback으로 참조를 고정하지 않으면
+  // 재생 중 100ms마다 바뀌는 currentTime 때문에 이 컴포넌트가 계속 리렌더링되고,
+  // 그때마다 이 함수도 새로 만들어져 SegmentCard로 내려가는 onAnalyzeSelection이
+  // 계속 바뀐다 — 그 결과 모바일 선택 감지용 selectionchange effect가 재생 중엔
+  // 400ms 디바운스가 끝나기도 전에 계속 해제·재등록되어 사실상 동작하지 않았다.
+  const handleAnalyzeSelection = useCallback(async (text: string) => {
+    setAnalysisText(text);
+    setAnalysisResult(null);
+    setAnalysisExpanded(true);
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "분석 요청 실패");
+      setAnalysisResult({ tokens: data.tokens ?? [], translation: data.translation ?? "" });
+    } catch (err) {
+      console.error("분석 실패:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
+
   if (!video || !segments) {
     return <p className="text-neutral-500">불러오는 중...</p>;
   }
@@ -347,27 +373,6 @@ export default function VideoPage() {
       ...prev,
       [segmentId]: { ...prev[segmentId], [lang]: !prev[segmentId]?.[lang] },
     }));
-  }
-
-  async function handleAnalyzeSelection(text: string) {
-    setAnalysisText(text);
-    setAnalysisResult(null);
-    setAnalysisExpanded(true);
-    setAnalyzing(true);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "분석 요청 실패");
-      setAnalysisResult({ tokens: data.tokens ?? [], translation: data.translation ?? "" });
-    } catch (err) {
-      console.error("분석 실패:", err);
-    } finally {
-      setAnalyzing(false);
-    }
   }
 
   async function handleRebuildSegments() {

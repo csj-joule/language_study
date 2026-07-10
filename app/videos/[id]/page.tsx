@@ -127,6 +127,7 @@ export default function VideoPage() {
 
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoHidden, setVideoHidden] = useState(false);
   const [loop, setLoop] = useState(false);
   const [loopIndex, setLoopIndex] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
@@ -428,6 +429,13 @@ export default function VideoPage() {
             {video.title}
           </h1>
           <button
+            data-testid="btn-toggle-video"
+            onClick={() => setVideoHidden((v) => !v)}
+            className="shrink-0 text-xs text-neutral-500 hover:text-indigo-600 hover:underline"
+          >
+            {videoHidden ? "영상 펼치기" : "영상 숨기기"}
+          </button>
+          <button
             data-testid="btn-rebuild-segments"
             onClick={handleRebuildSegments}
             disabled={rebuilding}
@@ -441,22 +449,25 @@ export default function VideoPage() {
           </button>
         </div>
 
-        <YoutubePlayer
-          ref={playerRef}
-          youtubeId={video.youtubeId}
-          onTimeUpdate={setCurrentTime}
-          onPlayStateChange={setIsPlaying}
-          onReady={() => {
-            if (!appliedInitialSeekRef.current && initialSeekSec) {
-              appliedInitialSeekRef.current = true;
-              const sec = parseFloat(initialSeekSec);
-              if (!Number.isNaN(sec)) {
-                playerRef.current?.seekTo(sec, true);
-                playerRef.current?.playVideo();
+        {/* 오디오는 계속 재생돼야 하므로 언마운트하지 않고 CSS로만 숨긴다 */}
+        <div className={videoHidden ? "hidden" : undefined}>
+          <YoutubePlayer
+            ref={playerRef}
+            youtubeId={video.youtubeId}
+            onTimeUpdate={setCurrentTime}
+            onPlayStateChange={setIsPlaying}
+            onReady={() => {
+              if (!appliedInitialSeekRef.current && initialSeekSec) {
+                appliedInitialSeekRef.current = true;
+                const sec = parseFloat(initialSeekSec);
+                if (!Number.isNaN(sec)) {
+                  playerRef.current?.seekTo(sec, true);
+                  playerRef.current?.playVideo();
+                }
               }
-            }
-          }}
-        />
+            }}
+          />
+        </div>
 
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm">
           <button

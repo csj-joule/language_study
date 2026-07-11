@@ -28,9 +28,9 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900">
+      <body className="min-h-full flex flex-col bg-gradient-to-b from-indigo-50/50 via-white to-white text-neutral-900">
         <SiteHeader />
-        <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6">{children}</main>
+        <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8">{children}</main>
       </body>
     </html>
   );

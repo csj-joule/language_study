@@ -100,7 +100,12 @@
       "Bash(curl -s -b /tmp/lc8.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo\" -o /tmp/video_data.json)",
       "Bash(curl -s -c /tmp/lc9.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
       "Bash(curl -s -b /tmp/lc9.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo&force=1\" -o /tmp/video_data2.json)",
-      "Bash(curl -s -b /tmp/lc9.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo&force=1\" -o /tmp/video_data3.json)"
+      "Bash(curl -s -b /tmp/lc9.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo&force=1\" -o /tmp/video_data3.json)",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__computer",
+      "mcp__claude-in-chrome__javascript_tool",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

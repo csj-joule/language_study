@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuidv4 } from "uuid";
@@ -12,15 +12,89 @@ import {
 import { SegmentCard } from "@/components/segment/SegmentCard";
 import type { AnalyzedToken } from "@/lib/furigana";
 import { rebuildSegments, type PipelineProgress } from "@/lib/pipeline";
+import type { VocabEntry } from "@/lib/types";
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5];
-const btn =
-  "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent";
+const iconBtn =
+  "flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-neutral-200 disabled:hover:text-neutral-600";
 const REBUILD_STAGE_LABEL: Record<PipelineProgress["stage"], string> = {
   transcript: "자막/번역 다시 가져오는 중...",
   saving: "저장 중...",
   done: "완료!",
 };
+
+function PrevIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="4" y="5" width="2.2" height="14" />
+      <path d="M20 5.5v13L8.5 12 20 5.5z" />
+    </svg>
+  );
+}
+
+function NextIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="17.8" y="5" width="2.2" height="14" />
+      <path d="M4 5.5v13L15.5 12 4 5.5z" />
+    </svg>
+  );
+}
+
+function ReplayIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 4 3 9 8 9" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M6 4.5v15L20 12 6 4.5z" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="5.5" y="4.5" width="4.5" height="15" />
+      <rect x="14" y="4.5" width="4.5" height="15" />
+    </svg>
+  );
+}
+
+function LoopIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
 
 export default function VideoPage() {
   const params = useParams<{ id: string }>();
@@ -37,12 +111,23 @@ export default function VideoPage() {
     () => db.bookmarks.where("videoId").equals(videoId).toArray(),
     [videoId]
   );
+  // 단어장은 여러 기기가 공유하는 서버(Neon Postgres)에 저장되므로 IndexedDB가
+  // 아니라 /api/vocab을 통해 불러오고, 추가/삭제 후 로컬 상태를 직접 갱신한다.
+  const [vocabEntries, setVocabEntries] = useState<VocabEntry[] | null>(null);
+  useEffect(() => {
+    fetch("/api/vocab")
+      .then((res) => res.json())
+      .then((data) => setVocabEntries(data.entries ?? []))
+      .catch((err) => console.error("단어장 불러오기 실패:", err));
+  }, []);
 
   const playerRef = useRef<YoutubePlayerHandle>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const appliedInitialSeekRef = useRef(false);
 
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoHidden, setVideoHidden] = useState(false);
   const [loop, setLoop] = useState(false);
   const [loopIndex, setLoopIndex] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
@@ -60,7 +145,6 @@ export default function VideoPage() {
   } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisExpanded, setAnalysisExpanded] = useState(true);
-  const [vocabSaved, setVocabSaved] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildProgress, setRebuildProgress] = useState<PipelineProgress | null>(
     null
@@ -160,6 +244,32 @@ export default function VideoPage() {
     })();
   }, [segments, video?.youtubeId]);
 
+  // setState 호출뿐이라 의존성이 없다. useCallback으로 참조를 고정하지 않으면
+  // 재생 중 100ms마다 바뀌는 currentTime 때문에 이 컴포넌트가 계속 리렌더링되고,
+  // 그때마다 이 함수도 새로 만들어져 SegmentCard로 내려가는 onAnalyzeSelection이
+  // 계속 바뀐다 — 그 결과 모바일 선택 감지용 selectionchange effect가 재생 중엔
+  // 400ms 디바운스가 끝나기도 전에 계속 해제·재등록되어 사실상 동작하지 않았다.
+  const handleAnalyzeSelection = useCallback(async (text: string) => {
+    setAnalysisText(text);
+    setAnalysisResult(null);
+    setAnalysisExpanded(true);
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "분석 요청 실패");
+      setAnalysisResult({ tokens: data.tokens ?? [], translation: data.translation ?? "" });
+    } catch (err) {
+      console.error("분석 실패:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
+
   if (!video || !segments) {
     return <p className="text-neutral-500">불러오는 중...</p>;
   }
@@ -168,6 +278,87 @@ export default function VideoPage() {
     (bookmarks ?? []).map((b) => b.segmentId)
   );
   const currentSegment = currentIndex >= 0 ? segments[currentIndex] : null;
+
+  // 단어(품사 있음)와 문구(품사 없음)를 같은 테이블에 저장하므로, surface+baseForm
+  // 조합을 키로 삼아 이미 저장된 항목인지 구분한다.
+  const wordVocabKey = (surface: string, baseForm?: string) =>
+    `${surface}::${baseForm ?? ""}`;
+  const savedWordEntries = (vocabEntries ?? []).filter((v) => v.pos);
+  const savedPhraseEntries = (vocabEntries ?? []).filter((v) => !v.pos);
+  const savedWordKeys = new Set(
+    savedWordEntries.map((v) => wordVocabKey(v.surface, v.baseForm))
+  );
+  const isPhraseSaved = analysisText
+    ? savedPhraseEntries.some((v) => v.surface === analysisText)
+    : false;
+
+  async function addVocabEntry(entry: Omit<VocabEntry, "id" | "createdAt">) {
+    const id = uuidv4();
+    const res = await fetch("/api/vocab", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...entry }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("단어장 저장 실패:", data.error);
+      alert(data.error ?? "단어장 저장에 실패했습니다");
+      return;
+    }
+    setVocabEntries((prev) => [data.entry, ...(prev ?? [])]);
+  }
+
+  async function removeVocabEntry(id: string) {
+    const res = await fetch(`/api/vocab?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      console.error("단어장 삭제 실패:", data?.error);
+      alert(data?.error ?? "단어장 삭제에 실패했습니다");
+      return;
+    }
+    setVocabEntries((prev) => (prev ?? []).filter((v) => v.id !== id));
+  }
+
+  async function toggleVocabWord(token: AnalyzedToken) {
+    const key = wordVocabKey(token.surface, token.baseForm);
+    const existing = savedWordEntries.find(
+      (v) => wordVocabKey(v.surface, v.baseForm) === key
+    );
+    if (existing) {
+      await removeVocabEntry(existing.id);
+    } else {
+      await addVocabEntry({
+        surface: token.surface,
+        reading: token.reading,
+        pos: token.pos,
+        baseForm: token.baseForm,
+        meaningKo: token.meaningKo,
+        youtubeId: video!.youtubeId,
+        videoTitle: video!.title,
+        segmentText: currentSegment?.textJa,
+        segmentStartSec: currentSegment?.startSec,
+      });
+    }
+  }
+
+  async function toggleVocabPhrase() {
+    if (!analysisText) return;
+    const existing = savedPhraseEntries.find((v) => v.surface === analysisText);
+    if (existing) {
+      await removeVocabEntry(existing.id);
+    } else {
+      await addVocabEntry({
+        surface: analysisText,
+        meaningKo: analysisResult?.translation,
+        youtubeId: video!.youtubeId,
+        videoTitle: video!.title,
+        segmentText: currentSegment?.textJa,
+        segmentStartSec: currentSegment?.startSec,
+      });
+    }
+  }
 
   function goTo(index: number, autoplay = true) {
     const seg = segments![index];
@@ -203,41 +394,6 @@ export default function VideoPage() {
     }));
   }
 
-  async function handleAnalyzeSelection(text: string) {
-    setAnalysisText(text);
-    setAnalysisResult(null);
-    setAnalysisExpanded(true);
-    setAnalyzing(true);
-    setVocabSaved(false);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "분석 요청 실패");
-      setAnalysisResult({ tokens: data.tokens ?? [], translation: data.translation ?? "" });
-    } catch (err) {
-      console.error("분석 실패:", err);
-    } finally {
-      setAnalyzing(false);
-    }
-  }
-
-  async function handleSaveVocab() {
-    if (!analysisText || !analysisResult || vocabSaved) return;
-    await db.vocab.add({
-      id: uuidv4(),
-      textJa: analysisText,
-      textKo: analysisResult.translation,
-      videoId: video?.id,
-      videoTitle: video?.title,
-      createdAt: new Date().toISOString(),
-    });
-    setVocabSaved(true);
-  }
-
   async function handleRebuildSegments() {
     const bookmarkCount = (bookmarks ?? []).length;
     const message =
@@ -264,14 +420,26 @@ export default function VideoPage() {
   return (
     <div className="flex flex-col gap-4">
       {/* 영상 + 컨트롤 + 현재 구간을 화면 상단에 고정 (아래 전체 목록과는 그림자로 구분) */}
-      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-3 border-b bg-neutral-50 px-4 pb-3 pt-3 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.08)]">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-lg font-semibold">{video.title}</h1>
+      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-3 border-b border-neutral-200/70 bg-white/85 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+        <div className="flex items-center justify-between gap-2">
+          <h1
+            className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight"
+            title={video.title}
+          >
+            {video.title}
+          </h1>
+          <button
+            data-testid="btn-toggle-video"
+            onClick={() => setVideoHidden((v) => !v)}
+            className="shrink-0 text-xs text-neutral-500 hover:text-indigo-600 hover:underline"
+          >
+            {videoHidden ? "영상 펼치기" : "영상 숨기기"}
+          </button>
           <button
             data-testid="btn-rebuild-segments"
             onClick={handleRebuildSegments}
             disabled={rebuilding}
-            className="shrink-0 text-xs text-neutral-500 hover:text-neutral-800 hover:underline disabled:opacity-50 disabled:no-underline"
+            className="shrink-0 text-xs text-neutral-500 hover:text-indigo-600 hover:underline disabled:opacity-50 disabled:no-underline"
           >
             {rebuilding
               ? rebuildProgress
@@ -281,49 +449,62 @@ export default function VideoPage() {
           </button>
         </div>
 
-        <YoutubePlayer
-          ref={playerRef}
-          youtubeId={video.youtubeId}
-          onTimeUpdate={setCurrentTime}
-          onReady={() => {
-            if (!appliedInitialSeekRef.current && initialSeekSec) {
-              appliedInitialSeekRef.current = true;
-              const sec = parseFloat(initialSeekSec);
-              if (!Number.isNaN(sec)) {
-                playerRef.current?.seekTo(sec, true);
-                playerRef.current?.playVideo();
+        {/* 오디오는 계속 재생돼야 하므로 언마운트하지 않고 CSS로만 숨긴다 */}
+        <div className={videoHidden ? "hidden" : undefined}>
+          <YoutubePlayer
+            ref={playerRef}
+            youtubeId={video.youtubeId}
+            onTimeUpdate={setCurrentTime}
+            onPlayStateChange={setIsPlaying}
+            onReady={() => {
+              if (!appliedInitialSeekRef.current && initialSeekSec) {
+                appliedInitialSeekRef.current = true;
+                const sec = parseFloat(initialSeekSec);
+                if (!Number.isNaN(sec)) {
+                  playerRef.current?.seekTo(sec, true);
+                  playerRef.current?.playVideo();
+                }
               }
-            }
-          }}
-        />
+            }}
+          />
+        </div>
 
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3 shadow-sm">
           <button
             data-testid="btn-prev"
-            className={btn}
+            aria-label="이전 구간"
+            title="이전 구간"
+            className={iconBtn}
             onClick={() => goTo(Math.max(0, latestRef.current.currentIndex - 1))}
           >
-            이전
+            <PrevIcon />
           </button>
           <button
             data-testid="btn-replay"
-            className={btn}
+            aria-label="다시 재생"
+            title="다시 재생"
+            className={iconBtn}
             onClick={() => goTo(latestRef.current.currentIndex)}
           >
-            다시 재생
+            <ReplayIcon />
           </button>
           <button
             data-testid="btn-next"
-            className={btn}
+            aria-label="다음 구간"
+            title="다음 구간"
+            className={iconBtn}
             onClick={() =>
               goTo(Math.min(segments.length - 1, latestRef.current.currentIndex + 1))
             }
           >
-            다음
+            <NextIcon />
           </button>
           <button
             data-testid="btn-loop"
-            className={`${btn} ${loop ? "bg-neutral-900 text-white hover:bg-neutral-900" : ""}`}
+            aria-label={`구간반복 ${loop ? "ON" : "OFF"}`}
+            title={`구간반복 ${loop ? "ON" : "OFF"}`}
+            aria-pressed={loop}
+            className={`${iconBtn} ${loop ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-600 hover:bg-indigo-600 hover:text-white" : ""}`}
             onClick={() =>
               setLoop((v) => {
                 const next = !v;
@@ -332,13 +513,26 @@ export default function VideoPage() {
               })
             }
           >
-            구간반복 {loop ? "ON" : "OFF"}
+            <LoopIcon />
+          </button>
+          <button
+            data-testid="btn-play-pause"
+            aria-label={isPlaying ? "일시정지" : "재생"}
+            title={isPlaying ? "일시정지" : "재생"}
+            className={iconBtn}
+            onClick={() =>
+              isPlaying
+                ? playerRef.current?.pauseVideo()
+                : playerRef.current?.playVideo()
+            }
+          >
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
           <select
             data-testid="select-rate"
             value={rate}
             onChange={(e) => handleRateChange(Number(e.target.value))}
-            className="rounded-md border px-2 py-1.5 text-sm"
+            className="rounded-xl border border-neutral-200 px-2 py-1.5 text-sm text-neutral-600 outline-none transition-colors hover:border-indigo-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           >
             {RATES.map((r) => (
               <option key={r} value={r}>
@@ -387,37 +581,64 @@ export default function VideoPage() {
         )}
 
         {analysisText && (
-          <div className="rounded-lg border bg-white shadow-sm">
+          <div className="rounded-2xl border border-neutral-200/70 bg-white shadow-sm">
             <button
               data-testid="btn-toggle-analysis"
               onClick={() => setAnalysisExpanded((v) => !v)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
             >
-              <span className="flex items-center gap-1.5 text-sm font-medium">
+              <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
                 <span className="text-neutral-400">
                   {analysisExpanded ? "▾" : "▸"}
                 </span>
-                📖 {analysisText}
+                <span className="truncate">📖 {analysisText}</span>
               </span>
-              <span
-                data-testid="btn-close-analysis"
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAnalysisText(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  data-testid="btn-save-phrase-vocab"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleVocabPhrase();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleVocabPhrase();
+                    }
+                  }}
+                  aria-label={
+                    isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"
+                  }
+                  title={isPhraseSaved ? "단어장에서 제거" : "이 문구를 단어장에 저장"}
+                  className={`text-lg leading-none transition-transform hover:scale-110 ${
+                    isPhraseSaved ? "text-amber-500" : "text-neutral-300 hover:text-neutral-500"
+                  }`}
+                >
+                  {isPhraseSaved ? "★" : "☆"}
+                </span>
+                <span
+                  data-testid="btn-close-analysis"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
                     e.stopPropagation();
                     setAnalysisText(null);
-                  }
-                }}
-                aria-label="분석 닫기"
-                className="shrink-0 text-neutral-400 hover:text-neutral-700"
-              >
-                ✕
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAnalysisText(null);
+                    }
+                  }}
+                  aria-label="분석 닫기"
+                  className="text-neutral-400 hover:text-neutral-700"
+                >
+                  ✕
+                </span>
               </span>
             </button>
 
@@ -427,38 +648,42 @@ export default function VideoPage() {
                   <p className="text-sm text-neutral-500">분석 중...</p>
                 ) : analysisResult ? (
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-neutral-700">
-                        {analysisResult.translation || "(번역 없음)"}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleSaveVocab}
-                        disabled={vocabSaved || !analysisResult.translation}
-                        className="shrink-0 rounded-md border px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
-                      >
-                        {vocabSaved ? "✓ 저장됨" : "📌 단어장에 저장"}
-                      </button>
-                    </div>
+                    <p className="text-sm text-neutral-700">
+                      {analysisResult.translation || "(번역 없음)"}
+                    </p>
                     <table className="w-full text-left text-sm">
                       <thead>
                         <tr className="text-neutral-500">
+                          <th className="w-8 pb-1 font-medium">
+                            <span className="sr-only">단어장 저장</span>
+                          </th>
                           <th className="pr-3 pb-1 font-medium">단어</th>
                           <th className="pr-3 pb-1 font-medium">읽기</th>
                           <th className="pr-3 pb-1 font-medium">품사</th>
-                          <th className="pb-1 font-medium">사전형</th>
+                          <th className="pb-1 font-medium">번역</th>
                         </tr>
                       </thead>
                       <tbody>
                         {analysisResult.tokens.map((t, i) => (
-                          <tr key={i} className="border-t">
+                          <tr key={i} className="border-t border-neutral-100 hover:bg-indigo-50/40">
+                            <td className="py-1">
+                              <input
+                                type="checkbox"
+                                data-testid={`checkbox-vocab-word-${i}`}
+                                aria-label={`${t.surface} 단어장에 저장`}
+                                checked={savedWordKeys.has(
+                                  wordVocabKey(t.surface, t.baseForm)
+                                )}
+                                onChange={() => toggleVocabWord(t)}
+                              />
+                            </td>
                             <td className="py-1 pr-3">{t.surface}</td>
                             <td className="py-1 pr-3 text-neutral-500">
                               {t.reading ?? "-"}
                             </td>
                             <td className="py-1 pr-3 text-neutral-500">{t.pos}</td>
                             <td className="py-1 text-neutral-500">
-                              {t.baseForm ?? "-"}
+                              {t.meaningKo || "-"}
                             </td>
                           </tr>
                         ))}
@@ -473,7 +698,7 @@ export default function VideoPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-medium text-neutral-500">전체 스크립트</h2>
+        <h2 className="text-sm font-semibold text-neutral-500">전체 스크립트</h2>
         {autoTranslating && (
           <span className="text-xs text-neutral-400">번역 채우는 중...</span>
         )}

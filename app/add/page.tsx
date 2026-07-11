@@ -34,7 +34,7 @@ export default function AddVideoPage() {
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-6">
-      <h1 className="text-xl font-semibold">영상 추가</h1>
+      <h1 className="text-2xl font-bold tracking-tight">영상 추가</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="text"
@@ -42,25 +42,25 @@ export default function AddVideoPage() {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=..."
           disabled={loading}
-          className="rounded-md border px-3 py-2 disabled:bg-neutral-100"
+          className="rounded-xl border border-neutral-200 px-3 py-2.5 outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-neutral-100"
         />
         <button
           type="submit"
           disabled={loading || !url.trim()}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? "처리 중..." : "가져오기"}
         </button>
       </form>
 
       {progress && (
-        <div className="rounded-md border bg-white p-4 text-sm">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 text-sm shadow-sm">
           <p>{STAGE_LABEL[progress.stage]}</p>
         </div>
       )}
 
       {error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
       )}
 
       <p className="text-xs text-neutral-500">

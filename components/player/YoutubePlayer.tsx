@@ -14,6 +14,7 @@ type Props = {
   youtubeId: string;
   onTimeUpdate?: (seconds: number) => void;
   onReady?: () => void;
+  onPlayStateChange?: (isPlaying: boolean) => void;
 };
 
 let apiLoadPromise: Promise<void> | null = null;
@@ -37,15 +38,17 @@ function loadYoutubeApi(): Promise<void> {
 }
 
 export const YoutubePlayer = forwardRef<YoutubePlayerHandle, Props>(
-  function YoutubePlayer({ youtubeId, onTimeUpdate, onReady }, ref) {
+  function YoutubePlayer({ youtubeId, onTimeUpdate, onReady, onPlayStateChange }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<YT.Player | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onReadyRef = useRef(onReady);
+    const onPlayStateChangeRef = useRef(onPlayStateChange);
 
     onTimeUpdateRef.current = onTimeUpdate;
     onReadyRef.current = onReady;
+    onPlayStateChangeRef.current = onPlayStateChange;
 
     useImperativeHandle(
       ref,
@@ -76,6 +79,9 @@ export const YoutubePlayer = forwardRef<YoutubePlayerHandle, Props>(
                 if (typeof time === "number") onTimeUpdateRef.current?.(time);
               }, 100);
             },
+            onStateChange: (e: YT.OnStateChangeEvent) => {
+              onPlayStateChangeRef.current?.(e.data === window.YT.PlayerState.PLAYING);
+            },
           },
         });
       });
@@ -92,7 +98,7 @@ export const YoutubePlayer = forwardRef<YoutubePlayerHandle, Props>(
     return (
       <div
         ref={containerRef}
-        className="aspect-video w-full overflow-hidden rounded-lg bg-black"
+        className="mx-auto aspect-video max-h-[20vh] w-auto max-w-full overflow-hidden rounded-2xl bg-black shadow-sm sm:mx-0 sm:h-auto sm:max-h-none sm:w-full"
       />
     );
   }

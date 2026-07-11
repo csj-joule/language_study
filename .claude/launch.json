@@ -6,9 +6,10 @@
       "runtimeExecutable": "/bin/bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/Users/seungjinchoi/.nvm/versions/node/v20.20.2/bin:$PATH && npm run dev"
+        "export NVM_DIR=\"$HOME/.nvm\"; [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"; nvm use >/dev/null 2>&1; npm run dev"
       ],
-      "port": 3000
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

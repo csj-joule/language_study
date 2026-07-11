@@ -21,7 +21,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const token = await createSessionToken()
+  let token: string
+  try {
+    token = await createSessionToken()
+  } catch (err) {
+    console.error(err)
+    const message = err instanceof Error ? err.message : '로그인 세션 발급에 실패했습니다'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+
   const res = NextResponse.json({ ok: true })
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,

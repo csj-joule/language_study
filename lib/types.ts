@@ -39,3 +39,13 @@ export type Settings = {
   blindJa: boolean
   blindKo: boolean
 }
+
+/** 블록(선택)으로 지정해 분석한 문장/단어를 번역과 함께 저장하는 단어장 항목 */
+export type VocabEntry = {
+  id: string
+  textJa: string
+  textKo: string
+  videoId?: string
+  videoTitle?: string
+  createdAt: string
+}

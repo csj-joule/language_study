@@ -92,7 +92,15 @@
       "Bash(curl -s -b /tmp/lc6.txt -X POST \"http://localhost:3000/api/accounts\" -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
       "Bash(curl -s -c /tmp/lc7.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test1234\"}')",
       "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=2\")",
-      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=1\")"
+      "Bash(curl -s -b /tmp/lc6.txt -X DELETE \"http://localhost:3000/api/accounts?id=1\")",
+      "Bash(rm -f cookies_prod.txt)",
+      "Bash(curl -s -i -c cookies_prod.txt -X POST __TRACKED_VAR__/api/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b cookies_prod.txt __TRACKED_VAR__/api/accounts)",
+      "Bash(curl -s -c /tmp/lc8.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b /tmp/lc8.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo\" -o /tmp/video_data.json)",
+      "Bash(curl -s -c /tmp/lc9.txt -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"joule1709!\"}')",
+      "Bash(curl -s -b /tmp/lc9.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo&force=1\" -o /tmp/video_data2.json)",
+      "Bash(curl -s -b /tmp/lc9.txt \"http://localhost:3000/api/video-cache?video=A2bz2Q5uCMo&force=1\" -o /tmp/video_data3.json)"
     ]
   }
 }

@@ -60,6 +60,7 @@ export default function VideoPage() {
   } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisExpanded, setAnalysisExpanded] = useState(true);
+  const [vocabSaved, setVocabSaved] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildProgress, setRebuildProgress] = useState<PipelineProgress | null>(
     null
@@ -207,6 +208,7 @@ export default function VideoPage() {
     setAnalysisResult(null);
     setAnalysisExpanded(true);
     setAnalyzing(true);
+    setVocabSaved(false);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -221,6 +223,19 @@ export default function VideoPage() {
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  async function handleSaveVocab() {
+    if (!analysisText || !analysisResult || vocabSaved) return;
+    await db.vocab.add({
+      id: uuidv4(),
+      textJa: analysisText,
+      textKo: analysisResult.translation,
+      videoId: video?.id,
+      videoTitle: video?.title,
+      createdAt: new Date().toISOString(),
+    });
+    setVocabSaved(true);
   }
 
   async function handleRebuildSegments() {
@@ -412,9 +427,19 @@ export default function VideoPage() {
                   <p className="text-sm text-neutral-500">분석 중...</p>
                 ) : analysisResult ? (
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm text-neutral-700">
-                      {analysisResult.translation || "(번역 없음)"}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-neutral-700">
+                        {analysisResult.translation || "(번역 없음)"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleSaveVocab}
+                        disabled={vocabSaved || !analysisResult.translation}
+                        className="shrink-0 rounded-md border px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
+                      >
+                        {vocabSaved ? "✓ 저장됨" : "📌 단어장에 저장"}
+                      </button>
+                    </div>
                     <table className="w-full text-left text-sm">
                       <thead>
                         <tr className="text-neutral-500">

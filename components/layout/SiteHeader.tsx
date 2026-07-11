@@ -16,6 +16,9 @@ export default function SiteHeader() {
         <Link href="/bookmarks" className="text-sm text-neutral-600 hover:text-neutral-900">
           북마크
         </Link>
+        <Link href="/vocab" className="text-sm text-neutral-600 hover:text-neutral-900">
+          단어장
+        </Link>
         <Link href="/history" className="text-sm text-neutral-600 hover:text-neutral-900">
           캐시 히스토리
         </Link>

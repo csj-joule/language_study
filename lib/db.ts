@@ -1,11 +1,12 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Bookmark, Segment, Settings, Video } from './types'
+import type { Bookmark, Segment, Settings, Video, VocabEntry } from './types'
 
 class ShadowingDB extends Dexie {
   videos!: EntityTable<Video, 'id'>
   segments!: EntityTable<Segment, 'id'>
   bookmarks!: EntityTable<Bookmark, 'id'>
   settings!: EntityTable<Settings, 'id'>
+  vocab!: EntityTable<VocabEntry, 'id'>
 
   constructor() {
     super('shadowing-db')
@@ -14,6 +15,13 @@ class ShadowingDB extends Dexie {
       segments: 'id, videoId, order',
       bookmarks: 'id, videoId, segmentId, createdAt',
       settings: 'id',
+    })
+    this.version(2).stores({
+      videos: 'id, youtubeId, createdAt',
+      segments: 'id, videoId, order',
+      bookmarks: 'id, videoId, segmentId, createdAt',
+      settings: 'id',
+      vocab: 'id, videoId, createdAt',
     })
   }
 }
